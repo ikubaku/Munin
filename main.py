@@ -7,9 +7,11 @@ import argparse
 import logging
 import datetime
 import requests
+import shutil
 import config
 import library_index
 import database
+import analyzer
 
 
 def do_populate(conf):
@@ -53,7 +55,20 @@ def do_populate(conf):
 
 
 def do_find_headers(conf):
-    # stub
+    # Open the database
+    logging.info('Opening the database...')
+    db = database.Database(conf.database_root)
+    db.load()
+
+    # Create analyzer and look for library headers
+    logging.info("Looking for libraries' header files...")
+    an = analyzer.Analyzer(db, conf.temp_dir)
+    an.find_headers()
+
+    # Save the result
+    logging.info('Saving the header dictionary...')
+    db.save()
+
     return 0
 
 
@@ -66,6 +81,12 @@ def main():
 
     if 'log' in vars(args):
         logging.basicConfig(filename=vars(args)['log'])
+
+    if not shutil.rmtree.avoids_symlink_attacks:
+        logging.warning('''Your system does not support the symlink attack mitigations for the shutil.rmtree function.
+        Using this program is potentially dangerous because the attack can be used to remove arbitrary files in your 
+        system. See Note in the Python documentation for more information:
+        https://docs.python.org/3/library/shutil.html?highlight=shutil#shutil.rmtree''')
 
     # Load configuration
     conf_filename = vars(args)['config']

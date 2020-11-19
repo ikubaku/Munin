@@ -3,3 +3,6 @@ library_index_url = "https://downloads.arduino.cc/libraries/library_index.json"
 
 # The root directory for the database
 database_root = "~/munin"
+
+# Temporary directory for the analysis
+temp_dir = "/tmp/munin"

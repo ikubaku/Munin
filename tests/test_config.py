@@ -12,6 +12,10 @@ class TestConfigurationParser(unittest.TestCase):
         conf = config.read_config(os.path.join('samples', 'sample_config.toml'))
         self.assertEqual(conf.database_root, '~/munin')
 
+    def test_can_get_temp_dir(self):
+        conf = config.read_config(os.path.join('samples', 'sample_config.toml'))
+        self.assertEqual(conf.temp_dir, '/tmp/munin')
+
 
 if __name__ == '__main__':
     unittest.main()
