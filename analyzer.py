@@ -6,6 +6,7 @@ import configparser
 from configparser import ConfigParser
 from zipfile import ZipFile
 from progress.bar import Bar
+from chardet.universaldetector import UniversalDetector
 
 
 class Analyzer:
@@ -44,9 +45,20 @@ class Analyzer:
                     properties_path = None
             if properties_path:
                 props_bytes = z.read(properties_path)
-                # Assume the properties file is encoded in UTF-8
-                # FIXME: Support other encoding if needed
-                props_string = props_bytes.decode('utf-8')
+                # Guess the encoding and try the most probable one
+                guesser = UniversalDetector()
+                guesser.feed(props_bytes)
+                guess = guesser.close()
+                if guesser.done:
+                    encoding = guess['encoding']
+                else:
+                    # Fallback to the UTF-8 encoding
+                    encoding = 'utf-8'
+                try:
+                    props_string = props_bytes.decode(encoding)
+                except UnicodeError:
+                    logging.warning('Could not decode the properties file properly for library in path:{}'.format(library_path))
+                    return None
                 # HACK: add a dummy section so that the Python's ConfigParser can parse the properties file
                 props_string = '[properties]\n' + props_string
                 parser = ConfigParser()
