@@ -69,7 +69,10 @@ class Analyzer:
                     return None
                 props = dict(dict(parser)['properties'])
                 if 'includes' in props:
-                    return props['includes']
+                    headers = props['includes'].split(',')
+                    # Remove empty strings for trailing comma and empty include corner cases
+                    headers = [x for x in headers if x != '']
+                    return headers
 
             # Search in the source directory and the root directory of the library
             logging.info('The includes property is not present.')
