@@ -61,7 +61,7 @@ class Analyzer:
                     return None
                 # HACK: add a dummy section so that the Python's ConfigParser can parse the properties file
                 props_string = '[properties]\n' + props_string
-                parser = ConfigParser()
+                parser = ConfigParser(interpolation=None)
                 try:
                     parser.read_string(props_string)
                 except configparser.Error:
