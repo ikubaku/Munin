@@ -2,6 +2,7 @@ from pathlib import Path
 import logging
 import re
 import shutil
+import configparser
 from configparser import ConfigParser
 from zipfile import ZipFile
 from progress.bar import Bar
@@ -24,7 +25,10 @@ class Analyzer:
         bar = Bar('PROGRESS', max=n_libs)
         for lib_info in self.database.get_library_info_list():
             headers = self.get_headers_for_library(lib_info.path)
-            self.database.add_header_dictionary_entry(lib_info, headers)
+            if headers is None:
+                logging.warning('Analysis failed with the library: {}-{}'.format(lib_info.name, lib_info.version))
+            else:
+                self.database.add_header_dictionary_entry(lib_info, headers)
             bar.next()
 
     def get_headers_for_library(self, library_path):
@@ -46,7 +50,11 @@ class Analyzer:
                 # HACK: add a dummy section so that the Python's ConfigParser can parse the properties file
                 props_string = '[properties]\n' + props_string
                 parser = ConfigParser()
-                parser.read_string(props_string)
+                try:
+                    parser.read_string(props_string)
+                except configparser.Error:
+                    logging.warning('Invalid library.properties file for library in path: {}'.format(library_path))
+                    return None
                 props = dict(dict(parser)['properties'])
                 if 'includes' in props:
                     return props['includes']
