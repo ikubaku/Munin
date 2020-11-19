@@ -29,7 +29,7 @@ class Analyzer:
 
     def get_headers_for_library(self, library_path):
         logging.info('Analyzing the library in path: {}...'.format(library_path))
-        ar = library_path.glob('*.zip')[0]
+        ar = list(library_path.glob('*.zip'))[0]
         with ZipFile(ar) as z:
             filenames = z.namelist()
             for f in filenames:
