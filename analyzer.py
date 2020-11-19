@@ -22,7 +22,7 @@ class Analyzer:
     def find_headers(self):
         lib_info_list = self.database.get_library_info_list()
         n_libs = len(lib_info_list)
-        print('ooking for library headers from {} libraries...'.format(n_libs))
+        print('Looking for library headers from {} libraries...'.format(n_libs))
         bar = Bar('PROGRESS', max=n_libs)
         for lib_info in self.database.get_library_info_list():
             headers = self.get_headers_for_library(lib_info.path)
