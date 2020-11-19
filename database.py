@@ -102,7 +102,7 @@ class Database:
 
     def deserialize_header_dictionary(self, dict_from_toml):
         res = {}
-        for (k, v) in dict_from_toml:
+        for (k, v) in dict_from_toml.items():
             libs = set()
             for lib in v:
                 lib_str = '{}\n{}'.format(lib['name'], lib['version'])
