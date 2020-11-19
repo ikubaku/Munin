@@ -60,7 +60,9 @@ class Database:
             name = lib['name']
             version = lib['version']
             path = Path(self.root_path, self.LIBRARY_STORAGE_DIRECTORY, name, version)
-            info_list.append(LibraryInfo(name, version, path))
+            # Append the library data if the archive exists locally
+            if self.is_downloaded(path):
+                info_list.append(LibraryInfo(name, version, path))
         return info_list
 
     # For the entries of the set of libraries, we use the name and the version as strings concatenated by '\n'.
@@ -74,6 +76,16 @@ class Database:
             else:
                 # Create a new set of candidates for the header file
                 self.header_dict[h] = {'{}\n{}'.format(lib_info.name, lib_info.version)}
+
+    def is_downloaded(self, library_path):
+        meta_path = Path(library_path, self.LIBRARY_METADATA_FILENAME)
+        if meta_path.exists():
+            with open(meta_path) as f:
+                toml_string = f.read()
+                metadata = toml.loads(toml_string)
+                return metadata['could_download']
+        else:
+            return False
 
     def serialize_header_dictionary(self):
         res = {}
