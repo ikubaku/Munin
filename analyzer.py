@@ -4,6 +4,7 @@ import re
 import shutil
 from configparser import ConfigParser
 from zipfile import ZipFile
+from progress.bar import Bar
 
 
 class Analyzer:
@@ -17,9 +18,14 @@ class Analyzer:
         self.find_headers()
 
     def find_headers(self):
+        lib_info_list = self.database.get_library_info_list()
+        n_libs = len(lib_info_list)
+        print('ooking for library headers from {} libraries...'.format(n_libs))
+        bar = Bar('PROGRESS', max=n_libs)
         for lib_info in self.database.get_library_info_list():
             headers = self.get_headers_for_library(lib_info.path)
             self.database.add_header_dictionary_entry(lib_info, headers)
+            bar.next()
 
     def get_headers_for_library(self, library_path):
         logging.info('Analyzing the library in path: {}...'.format(library_path))
