@@ -14,7 +14,25 @@ import database
 import analyzer
 
 
-def do_populate(conf):
+def do_find_headers(conf):
+    # Open the database
+    logging.info('Opening the database...')
+    db = database.Database(conf.database_root)
+    db.load()
+
+    # Create analyzer and look for library headers
+    logging.info("Looking for libraries' header files...")
+    an = analyzer.Analyzer(db, conf.temp_dir)
+    an.find_headers()
+
+    # Save the result
+    logging.info('Saving the header dictionary...')
+    db.save()
+
+    return 0
+
+
+def do_fetch(conf, populate=False):
     # Download the library index
     logging.info('Downloading the package index from: {}...'.format(conf.library_index_url))
     r = requests.get(conf.library_index_url)
@@ -41,7 +59,7 @@ def do_populate(conf):
     # Fetch library archives and overwrite local data
     logging.info('Fetching library archives...')
     db.library_index = index
-    db.download(overwrite=True)
+    db.download(overwrite=populate)
 
     # Save other important data
     logging.info('Saving additional data...')
@@ -54,29 +72,11 @@ def do_populate(conf):
     return 0
 
 
-def do_find_headers(conf):
-    # Open the database
-    logging.info('Opening the database...')
-    db = database.Database(conf.database_root)
-    db.load()
-
-    # Create analyzer and look for library headers
-    logging.info("Looking for libraries' header files...")
-    an = analyzer.Analyzer(db, conf.temp_dir)
-    an.find_headers()
-
-    # Save the result
-    logging.info('Saving the header dictionary...')
-    db.save()
-
-    return 0
-
-
 def main():
     parser = argparse.ArgumentParser(description='Munin - Code clone database creator')
     parser.add_argument('-c', '--config', help='configuration filename', default='munin.toml', metavar='CONFIG')
     parser.add_argument('-l', '--log', help='log file filename', metavar='LOG')
-    parser.add_argument('command', choices=['populate', 'find_headers'], help='command to perform', metavar='COMMAND')
+    parser.add_argument('command', choices=['populate', 'find_headers', 'fetch'], help='command to perform', metavar='COMMAND')
     args = parser.parse_args()
 
     if 'log' in vars(args):
@@ -95,9 +95,11 @@ def main():
 
     command = vars(args)['command']
     if command == 'populate':
-        return do_populate(conf)
+        return do_fetch(conf, populate=True)
     elif command == 'find_headers':
         do_find_headers(conf)
+    elif command == 'fetch':
+        do_fetch(conf)
     else:
         logging.error('BUG: Unknown command: {}.'.format(command))
         return -1
