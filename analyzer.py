@@ -42,45 +42,6 @@ class Analyzer:
         ar = list(library_path.glob('*.zip'))[0]
         with ZipFile(ar) as z:
             filenames = z.namelist()
-            for f in filenames:
-                if re.fullmatch(r'^[^/]+/library.properties$', f):
-                    properties_path = f
-                    break
-                else:
-                    properties_path = None
-            if properties_path:
-                props_bytes = z.read(properties_path)
-                # Guess the encoding and try the most probable one
-                guesser = UniversalDetector()
-                guesser.feed(props_bytes)
-                guess = guesser.close()
-                if guesser.done:
-                    encoding = guess['encoding']
-                else:
-                    # Fallback to the UTF-8 encoding
-                    encoding = 'utf-8'
-                try:
-                    props_string = props_bytes.decode(encoding)
-                except UnicodeError:
-                    logging.warning('Could not decode the properties file properly for library in path:{}'.format(library_path))
-                    return None
-                # HACK: add a dummy section so that the Python's ConfigParser can parse the properties file
-                props_string = '[properties]\n' + props_string
-                parser = ConfigParser(interpolation=None)
-                try:
-                    parser.read_string(props_string)
-                except configparser.Error:
-                    logging.warning('Invalid library.properties file for library in path: {}'.format(library_path))
-                    return None
-                props = dict(dict(parser)['properties'])
-                if 'includes' in props:
-                    headers = props['includes'].split(',')
-                    # Remove empty strings for trailing comma and empty include corner cases
-                    headers = [x for x in headers if x != '']
-                    return headers
-
-            # Search in the source directory and the root directory of the library
-            logging.info('The includes property is not present.')
             headers = []
             # Try the source directory
             for f in filenames:
