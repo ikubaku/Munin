@@ -14,6 +14,22 @@ import database
 import analyzer
 
 
+def start_logging(log_path):
+    print('Enabled logging to the log file.')
+    logging.basicConfig(filename=log_path)
+
+
+def load_config(conf_path):
+    logging.info('Reading the configuration from: {}...'.format(conf_path))
+    return config.read_config(conf_path)
+
+
+def initialize_command(args):
+    if args.log is not None:
+        start_logging(args.log)
+    return load_config(args.config)
+
+
 def do_find_headers(conf):
     # Open the database
     logging.info('Opening the database...')
@@ -72,15 +88,33 @@ def do_fetch(conf, populate=False):
     return 0
 
 
+def com_populate(args):
+    conf = initialize_command(args)
+    sys.exit(do_fetch(conf, populate=True))
+
+
+def com_fetch(args):
+    conf = initialize_command(args)
+    sys.exit(do_fetch(conf))
+
+
+def com_find_headers(args):
+    conf = initialize_command(args)
+    sys.exit(do_find_headers(conf))
+
+
 def main():
     parser = argparse.ArgumentParser(description='Munin - Code clone database creator')
     parser.add_argument('-c', '--config', help='configuration filename', default='munin.toml', metavar='CONFIG')
     parser.add_argument('-l', '--log', help='log file filename', metavar='LOG')
-    parser.add_argument('command', choices=['populate', 'find_headers', 'fetch'], help='command to perform', metavar='COMMAND')
+    command_parsers = parser.add_subparsers(help='Specify a subcommand', metavar='COMMAND')
+    populate_parser = command_parsers.add_parser('populate', help='Create a database from the start. (overwrites any existing data)')
+    populate_parser.set_defaults(func=com_populate)
+    fetch_parser = command_parsers.add_parser('fetch', help='Look for the header candidates from the downloaded Arduino libraries.')
+    fetch_parser.set_defaults(func=com_fetch)
+    find_headers_parser = command_parsers.add_parser('find_headers', help='Upload the library index in the existing database.')
+    find_headers_parser.set_defaults(func=com_find_headers)
     args = parser.parse_args()
-
-    if 'log' in vars(args):
-        logging.basicConfig(filename=vars(args)['log'])
 
     if not shutil.rmtree.avoids_symlink_attacks:
         logging.warning('''Your system does not support the symlink attack mitigations for the shutil.rmtree function.
@@ -88,26 +122,13 @@ def main():
         system. See Note in the Python documentation for more information:
         https://docs.python.org/3/library/shutil.html?highlight=shutil#shutil.rmtree''')
 
-    # Load configuration
-    conf_filename = vars(args)['config']
-    logging.info('Reading the configuration from: {}...'.format(conf_filename))
-    conf = config.read_config(conf_filename)
-
-    command = vars(args)['command']
-    if command == 'populate':
-        # populate: Create a database from the start. (overwrites any existing data)
-        return do_fetch(conf, populate=True)
-    elif command == 'find_headers':
-        # find_headers: Look for the header candidates from the downloaded Arduino libraries.
-        return do_find_headers(conf)
-    elif command == 'fetch':
-        # fetch: Upload the library index in the existing database.
-        return do_fetch(conf)
-    else:
-        logging.error('BUG: Unknown command: {}.'.format(command))
-        return -1
+    try:
+        args.func(args)
+    except AttributeError:
+        print('Bad command is specified or the command is empty.')
+        sys.exit(-1)
 
 
 # Press the green button in the gutter to run the script.
 if __name__ == '__main__':
-    sys.exit(main())
+    main()
