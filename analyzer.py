@@ -45,7 +45,7 @@ class Analyzer:
             headers = []
             # Try the source directory
             for f in filenames:
-                if re.fullmatch(r'^[^/]+/src/[^/]+.(h|hpp)$', f):
+                if re.fullmatch(r'^[^/]+/src/[^/]+[.](h|hpp)$', f):
                     headers.append(str(Path(f).name))
             if len(headers) > 0:
                 return headers
@@ -53,7 +53,7 @@ class Analyzer:
             logging.info('No headers in the src directory.')
             logging.info('Trying the packages root directory...')
             for f in filenames:
-                if re.fullmatch(r'^[^/]+/[^/]+.(h|hpp)$', f):
+                if re.fullmatch(r'^[^/]+/[^/]+[.](h|hpp)$', f):
                     headers.append(str(Path(f).name))
             if len(headers) == 0:
                 logging.warning('No header file found for the library with path: {}'.format(library_path))
