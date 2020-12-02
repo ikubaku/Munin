@@ -99,10 +99,10 @@ def main():
         return do_fetch(conf, populate=True)
     elif command == 'find_headers':
         # find_headers: Look for the header candidates from the downloaded Arduino libraries.
-        do_find_headers(conf)
+        return do_find_headers(conf)
     elif command == 'fetch':
         # fetch: Upload the library index in the existing database.
-        do_fetch(conf)
+        return do_fetch(conf)
     else:
         logging.error('BUG: Unknown command: {}.'.format(command))
         return -1
