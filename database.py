@@ -54,6 +54,16 @@ class Database:
             self.download_library(name, version, url, overwrite)
             bar.next()
 
+    def search(self, header_name):
+        res = []
+        libs = self.header_dict[header_name]
+        for lib in libs:
+            values = lib.split('\n')
+            name = values[0]
+            version = values[1]
+            res.append({'name': name, 'version': version})
+        return res
+
     def get_library_info_list(self):
         info_list = []
         for lib in self.library_index.libs:
