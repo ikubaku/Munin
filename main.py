@@ -95,10 +95,13 @@ def main():
 
     command = vars(args)['command']
     if command == 'populate':
+        # populate: Create a database from the start. (overwrites any existing data)
         return do_fetch(conf, populate=True)
     elif command == 'find_headers':
+        # find_headers: Look for the header candidates from the downloaded Arduino libraries.
         do_find_headers(conf)
     elif command == 'fetch':
+        # fetch: Upload the library index in the existing database.
         do_fetch(conf)
     else:
         logging.error('BUG: Unknown command: {}.'.format(command))
