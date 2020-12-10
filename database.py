@@ -59,7 +59,7 @@ class FeatureDatabase:
     def deserialize(self, serialized):
         for (name, variants) in serialized.items():
             for version in variants.keys():
-                for (example_name, example_headers) in variants[version]['examples']:
+                for (example_name, example_headers) in variants[version]['examples'].items():
                     self.add_entry(name, version, example_name, list(example_headers))
 
 
