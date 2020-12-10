@@ -12,6 +12,7 @@ import config
 import library_index
 import database
 import analyzer
+import util
 
 
 def start_logging(log_path):
@@ -105,6 +106,27 @@ def do_search(conf, heeader_name):
     return 0
 
 
+def do_search_examples(conf, header_names):
+    # Open the database
+    logging.info('Opening the database...')
+    db = database.Database(conf.database_root)
+    db.load()
+    logging.info('Searching library examples for the header: {}...'.format(str(header_names)))
+    res = db.search_example_sketches(header_names)
+    print('Possibly corresponding library examples:')
+    for r in res:
+        print('name = {}, version = {}, example_name = {}'.format(r[0], r[1], r[2]))
+
+    return 0
+
+
+def do_guess_libraries(conf, sketch):
+    with open(sketch) as f:
+        logging.info('Parsing the given sketch...')
+        headers = util.get_included_headers_from_source_code(f.read())
+        return do_search_examples(conf, headers)
+
+
 def com_populate(args):
     conf = initialize_command(args)
     sys.exit(do_fetch(conf, populate=True))
@@ -128,6 +150,22 @@ def com_search(args):
     sys.exit(-1)
 
 
+def com_examples(args):
+    conf = initialize_command(args)
+    if args.headers is not None and len(args.headers) != 0:
+        sys.exit(do_search_examples(conf, args.headers))
+    print('The header names are not specified.')
+    sys.exit(-1)
+
+
+def com_guess(args):
+    conf = initialize_command(args)
+    if args.sketch is not None:
+        sys.exit(do_guess_libraries(conf, args.sketch))
+    print('The sketch is not specified.')
+    sys.exit(-1)
+
+
 def main():
     parser = argparse.ArgumentParser(description='Munin - Code clone database creator')
     parser.add_argument('-c', '--config', help='configuration filename', default='munin.toml', metavar='CONFIG')
@@ -142,6 +180,12 @@ def main():
     search_parser = command_parsers.add_parser('search', help='Find possibly corresponding libraries with a header file name.')
     search_parser.add_argument('header', help='Header file name for the searching.', metavar='HEADER')
     search_parser.set_defaults(func=com_search)
+    search_example_parser = command_parsers.add_parser('examples', help='Look for example sketches with header file names.')
+    search_example_parser.add_argument('headers', help='List of header file names for the searching.', nargs='*', metavar='HEADERS')
+    search_example_parser.set_defaults(func=com_examples)
+    guess_parser = command_parsers.add_parser('guess', help='Guess used libraries for the given sketch.')
+    guess_parser.add_argument('sketch', help='The sketch filename.', metavar='SKETCH')
+    guess_parser.set_defaults(func=com_guess)
     args = parser.parse_args()
 
     if not shutil.rmtree.avoids_symlink_attacks:
