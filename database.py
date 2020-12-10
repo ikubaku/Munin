@@ -10,6 +10,59 @@ from progress.bar import Bar
 import library_index
 
 
+class FeatureEntry:
+    def __init__(self):
+        self.examples = dict()
+
+    def set_entry(self, name, headers):
+        self.examples[name] = list(headers)
+
+
+class FeatureDatabase:
+    def __init__(self):
+        self.libraries = dict()
+
+    def add_entry(self, name, version, example, headers):
+        if name not in self.libraries:
+            self.libraries[name] = dict()
+
+        lib = self.libraries[name]
+        if version not in lib:
+            lib[version] = FeatureEntry()
+
+        fe = lib[version]
+        fe.set_entry(example, headers)
+
+    def search_all_for_headers(self, headers):
+        res = []
+        for (name, variants) in self.libraries.items():
+            for (version, fe) in variants.items():
+                for (example_name, example_headers) in fe.examples.items():
+                    if set(example_headers) in set(headers):
+                        res.append((name, version, example_name))
+        return res
+
+    def serialize(self):
+        res = dict()
+        for (name, variants) in self.libraries.items():
+            if name not in res:
+                res[name] = dict()
+            for (version, fe) in variants.items():
+                if version not in res[name]:
+                    res[name][version] = dict()
+                for (example_name, example_headers) in fe.examples.items():
+                    if 'examples' not in res[name][version]:
+                        res[name][version]['examples'] = dict()
+                    res[name][version]['examples'][example_name] = list(example_headers)
+        return res
+
+    def deserialize(self, serialized):
+        for (name, variants) in serialized.items():
+            for version in variants.keys():
+                for (example_name, example_headers) in variants[version]['examples']:
+                    self.add_entry(name, version, example_name, list(example_headers))
+
+
 class LibraryInfo:
     def __init__(self, name, version, path):
         self.name = name
@@ -22,22 +75,27 @@ class Database:
     LIBRARY_STORAGE_DIRECTORY = 'libraries'
     LIBRARY_METADATA_FILENAME = 'meta.toml'
     HEADER_DICTIONARY_FILENAME = 'headers.toml'
+    FEATURE_DATABASE_FILENAME = 'features.toml'
 
     def __init__(self, directory):
         self.root_path = Path(directory).expanduser()
         self.library_index = None
         self.header_dict = {}
+        self.feature_data = FeatureDatabase()
 
     def load(self):
         self.library_index = self.read_library_index()
         if Path(self.root_path, self.HEADER_DICTIONARY_FILENAME).exists():
             self.read_header_dictionary()
+        if Path(self.root_path, self.FEATURE_DATABASE_FILENAME).exists():
+            self.read_feature_database()
 
     def save(self):
         if not self.library_index:
             raise ValueError('No library index data to save.')
         self.write_library_index(self.library_index)
         self.write_header_dictionary()
+        self.write_feature_database()
 
     def download(self, overwrite=False):
         if not self.library_index:
@@ -64,6 +122,9 @@ class Database:
             res.append({'name': name, 'version': version})
         return res
 
+    def search_example_sketches(self, headers):
+        return self.feature_data.search_all_for_headers(headers)
+
     def get_library_info_list(self):
         info_list = []
         for lib in self.library_index.libs:
@@ -86,6 +147,9 @@ class Database:
             else:
                 # Create a new set of candidates for the header file
                 self.header_dict[h] = {'{}\n{}'.format(lib_info.name, lib_info.version)}
+
+    def add_feature_database_entry(self, lib_info, example_name, headers):
+        self.feature_data.add_entry(lib_info.name, lib_info.version, example_name, headers)
 
     def is_downloaded(self, library_path):
         meta_path = Path(library_path, self.LIBRARY_METADATA_FILENAME)
@@ -150,6 +214,19 @@ class Database:
             toml_string = f.read()
             data_dict = toml.loads(toml_string)
             self.header_dict = self.deserialize_header_dictionary(data_dict)
+
+    def write_feature_database(self):
+        self.secure_root_directory()
+        data_dict = self.feature_data.serialize()
+        toml_string = toml.dumps(data_dict)
+        with open(Path(self.root_path, self.FEATURE_DATABASE_FILENAME), 'w') as f:
+            f.write(toml_string)
+
+    def read_feature_database(self):
+        with open(Path(self.root_path, self.FEATURE_DATABASE_FILENAME)) as f:
+            toml_string = f.read()
+            data_dict = toml.reads(toml_string)
+            self.feature_data.deserialize(data_dict)
 
     def download_library(self, name, version, url, overwrite=False):
         # Create needed directories if they are not present

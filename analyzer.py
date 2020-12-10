@@ -5,6 +5,7 @@ import shutil
 import configparser
 from configparser import ConfigParser
 from zipfile import ZipFile
+from io import TextIOWrapper
 from progress.bar import Bar
 from chardet.universaldetector import UniversalDetector
 
@@ -32,6 +33,15 @@ class Analyzer:
                 n_failure += 1
             else:
                 self.database.add_header_dictionary_entry(lib_info, headers)
+            if headers is not None:
+                example_headers = self.get_headers_in_examples(lib_info.path)
+                if example_headers is None:
+                    logging.warning('Analysis failed with the library: {}-{}'.format(lib_info.name, lib_info.version))
+                    n_failure += 1
+                else:
+                    for (example_name, example_headers) in example_headers:
+                        feature_headers = set(headers) and set(example_headers)
+                        self.database.add_feature_database_entry(lib_info, example_name, feature_headers)
             bar.next()
         if n_failure > 0:
             print()
@@ -58,6 +68,54 @@ class Analyzer:
             if len(headers) == 0:
                 logging.warning('No header file found for the library with path: {}'.format(library_path))
             return headers
+
+    # returns None on failure
+    def get_headers_in_examples(self, library_path):
+        res = []
+        logging.info('Analyzing the example sketches in path: {}...'.format(library_path))
+        ar = list(library_path.glob('*.zip'))[0]
+        with ZipFile(ar) as z:
+            filenames = z.namelist()
+            # Look for the example sketches
+            sketches = []
+            for f in filenames:
+                if re.fullmatch(r'^[^/]+/examples/[^/]+/[^/]+[.](ino|pde)$', f):
+                    sketches.append(f)
+            if len(sketches) == 0:
+                logging.warning('No example found for the library with path: {}'.format(library_path))
+            for s in sketches:
+                with z.open(s) as f:
+                    data = f.read()
+                    guesser = UniversalDetector()
+                    guesser.feed(data)
+                    guess = guesser.close()
+                    if guesser.done:
+                        encoding = guess['encoding']
+                        if encoding is None:
+                            # try UTF-8 if we are not sure about the encoding
+                            encoding = 'utf-8'
+                    else:
+                        encoding = 'utf-8'
+                    try:
+                        sketch_source = data.decode(encoding)
+                    except UnicodeError:
+                        return None
+                    headers = self.get_included_headers_from_source_code(sketch_source)
+                    example_name = '.'.join(Path(s).name.split('.')[:-1])
+                    res.append((example_name, headers))
+        return res
+
+    def get_included_headers_from_source_code(self, source):
+        res = []
+        lines = source.splitlines()
+        for line in lines:
+            line = line.strip()
+            m = re.fullmatch(r'^#include ("|<)(.+[.](h|hpp))("|>)$', line)
+            if m is not None:
+                header = m.group(2)
+                logging.info('Include found: {}'.format(header))
+                res.append(header)
+        return res
 
     # NOTE: Currently the temporary directory is unused
     def prepare_temp_dir(self):
