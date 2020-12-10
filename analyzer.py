@@ -39,6 +39,8 @@ class Analyzer:
                     for (example_name, example_headers) in example_headers:
                         feature_headers = set(headers) & set(example_headers)
                         self.database.add_feature_database_entry(lib_info, example_name, feature_headers)
+                if len(headers) == 0 and len(example_headers) != 0:
+                    logging.warning('Found examples but the library has no header in its source directory.: {}-{}'.format(lib_info.name, lib_info.version))
             bar.next()
         if n_failure > 0:
             print()
