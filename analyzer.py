@@ -28,11 +28,7 @@ class Analyzer:
         bar = Bar('PROGRESS', max=n_libs)
         for lib_info in self.database.get_library_info_list():
             headers = self.get_headers_for_library(lib_info.path)
-            if headers is None:
-                logging.warning('Analysis failed with the library: {}-{}'.format(lib_info.name, lib_info.version))
-                n_failure += 1
-            else:
-                self.database.add_header_dictionary_entry(lib_info, headers)
+            self.database.add_header_dictionary_entry(lib_info, headers)
             if headers is not None:
                 example_headers = self.get_headers_in_examples(lib_info.path)
                 if example_headers is None:
