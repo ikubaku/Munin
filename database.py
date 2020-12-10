@@ -225,7 +225,7 @@ class Database:
     def read_feature_database(self):
         with open(Path(self.root_path, self.FEATURE_DATABASE_FILENAME)) as f:
             toml_string = f.read()
-            data_dict = toml.reads(toml_string)
+            data_dict = toml.loads(toml_string)
             self.feature_data.deserialize(data_dict)
 
     def download_library(self, name, version, url, overwrite=False):
