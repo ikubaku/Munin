@@ -37,7 +37,7 @@ class Analyzer:
                     n_failure += 1
                 else:
                     for (example_name, example_headers) in example_headers:
-                        feature_headers = set(headers) and set(example_headers)
+                        feature_headers = set(headers) & set(example_headers)
                         self.database.add_feature_database_entry(lib_info, example_name, feature_headers)
             bar.next()
         if n_failure > 0:

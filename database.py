@@ -38,7 +38,7 @@ class FeatureDatabase:
         for (name, variants) in self.libraries.items():
             for (version, fe) in variants.items():
                 for (example_name, example_headers) in fe.examples.items():
-                    if set(example_headers) in set(headers):
+                    if set(example_headers).issubset(set(headers)):
                         res.append((name, version, example_name))
         return res
 
