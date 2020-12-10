@@ -9,6 +9,7 @@ from io import TextIOWrapper
 from progress.bar import Bar
 from chardet.universaldetector import UniversalDetector
 
+import util
 
 class Analyzer:
     HEADERS_FILENAME = 'headers.toml'
@@ -96,21 +97,9 @@ class Analyzer:
                         sketch_source = data.decode(encoding)
                     except UnicodeError:
                         return None
-                    headers = self.get_included_headers_from_source_code(sketch_source)
+                    headers = util.get_included_headers_from_source_code(sketch_source)
                     example_name = '.'.join(Path(s).name.split('.')[:-1])
                     res.append((example_name, headers))
-        return res
-
-    def get_included_headers_from_source_code(self, source):
-        res = []
-        lines = source.splitlines()
-        for line in lines:
-            line = line.strip()
-            m = re.fullmatch(r'^#include ("|<)(.+[.](h|hpp))("|>)$', line)
-            if m is not None:
-                header = m.group(2)
-                logging.info('Include found: {}'.format(header))
-                res.append(header)
         return res
 
     # NOTE: Currently the temporary directory is unused
