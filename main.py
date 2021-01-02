@@ -15,14 +15,17 @@ import analyzer
 import util
 
 
-def start_logging(log_path, verbosity):
+def start_logging(log_path, verbosity, no_warning):
     print('Enabled logging to the log file.')
     logging.basicConfig(filename=log_path)
     # Temporarily increase log level to show mandatory messages
     logging.getLogger().setLevel(logging.INFO)
     logging.info('--- Start of the Munin log from date (UTC): {} ---'.format(datetime.datetime.utcnow()))
     if verbosity == 0:
-        logging.getLogger().setLevel(logging.WARNING)
+        if no_warning:
+            logging.getLogger().setLevel(logging.ERROR)
+        else:
+            logging.getLogger().setLevel(logging.WARNING)
     elif verbosity == 1:
         logging.getLogger().setLevel(logging.INFO)
     else:
@@ -36,7 +39,7 @@ def load_config(conf_path):
 
 def initialize_command(args):
     if args.log is not None:
-        start_logging(args.log, args.verbose)
+        start_logging(args.log, args.verbose, args.nowarn)
     return load_config(args.config)
 
 
@@ -180,6 +183,7 @@ def main():
     parser.add_argument('-c', '--config', help='configuration filename', default='munin.toml', metavar='CONFIG')
     parser.add_argument('-l', '--log', help='log file filename', metavar='LOG')
     parser.add_argument('-v', '--verbose', help='verbosity of the logging (max stack: 2)', action='count', default=0)
+    parser.add_argument('-q', '--nowarn', help='suppress warning message (note that verbosity option overrides this)', action='store_true')
     command_parsers = parser.add_subparsers(help='Specify a subcommand', metavar='COMMAND')
     populate_parser = command_parsers.add_parser('populate', help='Create a database from the start. (overwrites any existing data)')
     populate_parser.set_defaults(func=com_populate)
