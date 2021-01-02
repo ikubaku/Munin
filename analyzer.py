@@ -5,6 +5,7 @@ import shutil
 import configparser
 from configparser import ConfigParser
 from zipfile import ZipFile
+from zipfile import BadZipFile
 from io import TextIOWrapper
 from progress.bar import Bar
 from chardet.universaldetector import UniversalDetector
@@ -29,8 +30,11 @@ class Analyzer:
         bar = Bar('PROGRESS', max=n_libs)
         for lib_info in self.database.get_library_info_list():
             headers = self.get_headers_for_library(lib_info.path)
-            self.database.add_header_dictionary_entry(lib_info, headers)
-            if headers is not None:
+            if headers is None:
+                logging.warning('Analysis failed with the library: {}-{}'.format(lib_info.name, lib_info.version))
+                n_failure += 1
+            else:
+                self.database.add_header_dictionary_entry(lib_info, headers)
                 example_headers = self.get_headers_in_examples(lib_info.path)
                 if example_headers is None:
                     logging.warning('Analysis failed with the library: {}-{}'.format(lib_info.name, lib_info.version))
@@ -49,7 +53,13 @@ class Analyzer:
     def get_headers_for_library(self, library_path):
         logging.info('Analyzing the library in path: {}...'.format(library_path))
         ar = list(library_path.glob('*.zip'))[0]
-        with ZipFile(ar) as z:
+        try:
+            z = ZipFile(ar)
+        except BadZipFile as ex:
+            logging.warning('Invalid Zip archive: {}'.format(ar))
+            logging.warning('Description: {}'.format(str(ex.args[0])))
+            return None
+        with z:
             filenames = z.namelist()
             headers = []
             # Try the source directory
@@ -73,7 +83,13 @@ class Analyzer:
         res = []
         logging.info('Analyzing the example sketches in path: {}...'.format(library_path))
         ar = list(library_path.glob('*.zip'))[0]
-        with ZipFile(ar) as z:
+        try:
+            z = ZipFile(ar)
+        except BadZipFile as ex:
+            logging.warning('Invalid Zip archive: {}'.format(ar))
+            logging.warning('Description: {}'.format(str(ex.args[0])))
+            return None
+        with z:
             filenames = z.namelist()
             # Look for the example sketches
             sketches = []
