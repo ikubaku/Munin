@@ -94,7 +94,7 @@ class Analyzer:
             # Look for the example sketches
             sketches = []
             for f in filenames:
-                if re.fullmatch(r'^[^/]+/examples/[^/]+/[^/]+[.](ino|pde)$', f):
+                if re.fullmatch(r'^[^/]+/examples/.+/[^/]+[.](ino|pde)$', f):
                     sketches.append(f)
             if len(sketches) == 0:
                 logging.warning('No example found for the library with path: {}'.format(library_path))
@@ -117,7 +117,11 @@ class Analyzer:
                         logging.warning('Could not decode the example sketch with path: {}'.format(s))
                         return None
                     headers = util.get_included_headers_from_source_code(sketch_source)
+                    # To get the example sketch name with separating directories, first we remove the extension from the
+                    # file path;
                     example_name = '.'.join(Path(s).name.split('.')[:-1])
+                    # and then, omit the predicating library archive name and the examples directory name.
+                    example_name = example_name[example_name.find('/examples/')+len('/examples/'):]
                     res.append((example_name, headers))
         return res
 
