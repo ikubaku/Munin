@@ -260,7 +260,7 @@ class Database:
         if r.status_code != 200:
             logging.error('Unexpected HTTP status code: {}'.format(r.status_code))
             self.write_library_metadata(target_version_path, dt, False)
-            logging.error('Continuing downloading other libraries')
+            logging.error('Could not download a library at: {}'.format(url))
         else:
             with open(Path(target_version_path, archive_filename), 'wb') as f:
                 f.write(r.content)
