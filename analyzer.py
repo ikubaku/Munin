@@ -44,6 +44,7 @@ class Analyzer:
                 if len(headers) == 0 and len(example_headers) != 0:
                     logging.warning('Found examples but the library has no header in its source directory.: {}-{}'.format(lib_info.name, lib_info.version))
             bar.next()
+        bar.finish()
         if n_failure > 0:
             print()
             print('{} out of {} analyses failed. Consult the log file for more information.'.format(n_failure, n_libs))

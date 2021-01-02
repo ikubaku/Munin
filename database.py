@@ -111,6 +111,7 @@ class Database:
             url = lib['url']
             self.download_library(name, version, url, overwrite)
             bar.next()
+        bar.finish()
 
     def search(self, header_name):
         res = []
