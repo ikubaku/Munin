@@ -190,7 +190,7 @@ class Database:
 
     def secure_root_directory(self):
         if not self.root_path.exists():
-            logging.info('The root directory for the database does not exist. Creating one...')
+            logging.debug('The root directory for the database does not exist. Creating one...')
             self.root_path.mkdir(0o755)
 
     def write_library_index(self, index):
@@ -235,20 +235,20 @@ class Database:
         # Create needed directories if they are not present
         lib_storage_path = Path(self.root_path, self.LIBRARY_STORAGE_DIRECTORY)
         if not lib_storage_path.exists():
-            logging.info('The library storage directory is not present. Creating one...')
+            logging.debug('The library storage directory is not present. Creating one...')
             lib_storage_path.mkdir(0o755)
         target_library_path = Path(lib_storage_path, name)
         if not target_library_path.exists():
-            logging.info('The directory for the library is not present. Creating one...')
+            logging.debug('The directory for the library is not present. Creating one...')
             target_library_path.mkdir(0o755)
         target_version_path = Path(target_library_path, version)
         if not target_version_path.exists():
-            logging.info('The directory for the version of the library is not present. Creating one...')
+            logging.debug('The directory for the version of the library is not present. Creating one...')
             target_version_path.mkdir(0o755)
 
         archives = list(target_version_path.glob('*.zip'))
         if not overwrite and len(archives) > 0:
-            logging.info('Some archives already exist. Skipping download.')
+            logging.debug('Some archives already exist. Skipping download.')
             return
 
         # Replace the content with the new archives
@@ -258,9 +258,9 @@ class Database:
         r = requests.get(url)
         dt = datetime.datetime.now(datetime.timezone.utc)
         if r.status_code != 200:
-            logging.warning('Unexpected HTTP status code: {}'.format(r.status_code))
+            logging.error('Unexpected HTTP status code: {}'.format(r.status_code))
             self.write_library_metadata(target_version_path, dt, False)
-            logging.warning('Continuing downloading other libraries')
+            logging.error('Continuing downloading other libraries')
         else:
             with open(Path(target_version_path, archive_filename), 'wb') as f:
                 f.write(r.content)

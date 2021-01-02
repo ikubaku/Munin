@@ -10,6 +10,6 @@ def get_included_headers_from_source_code(source):
         m = re.fullmatch(r'^#include ("|<)(.+[.](h|hpp))("|>)$', line)
         if m is not None:
             header = m.group(2)
-            logging.info('Include found: {}'.format(header))
+            logging.debug('Include found: {}'.format(header))
             res.append(header)
     return res

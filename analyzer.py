@@ -29,13 +29,13 @@ class Analyzer:
         for lib_info in self.database.get_library_info_list():
             headers = self.get_headers_for_library(lib_info.path)
             if headers is None:
-                logging.warning('Analysis failed with the library: {}-{}'.format(lib_info.name, lib_info.version))
+                logging.error('Analysis failed with the library: {}-{}'.format(lib_info.name, lib_info.version))
                 n_failure += 1
             else:
                 self.database.add_header_dictionary_entry(lib_info, headers)
                 example_headers = self.get_headers_in_examples(lib_info.path)
                 if example_headers is None:
-                    logging.warning('Analysis failed with the library: {}-{}'.format(lib_info.name, lib_info.version))
+                    logging.error('Analysis failed with the library: {}-{}'.format(lib_info.name, lib_info.version))
                     n_failure += 1
                 else:
                     for (example_name, example_headers) in example_headers:
@@ -56,8 +56,8 @@ class Analyzer:
         try:
             z = ZipFile(ar)
         except BadZipFile as ex:
-            logging.warning('Invalid Zip archive: {}'.format(ar))
-            logging.warning('Description: {}'.format(str(ex.args[0])))
+            logging.error('Invalid Zip archive: {}'.format(ar))
+            logging.error('Description: {}'.format(str(ex.args[0])))
             return None
         with z:
             filenames = z.namelist()
@@ -69,13 +69,13 @@ class Analyzer:
             if len(headers) > 0:
                 return headers
             # Try the root directory
-            logging.info('No headers in the src directory.')
-            logging.info('Trying the packages root directory...')
+            logging.debug('No headers in the src directory.')
+            logging.debug('Trying the packages root directory...')
             for f in filenames:
                 if re.fullmatch(r'^[^/]+/[^/]+[.](h|hpp)$', f):
                     headers.append(str(Path(f).name))
             if len(headers) == 0:
-                logging.warning('No header file found for the library with path: {}'.format(library_path))
+                logging.info('No header file found for the library with path: {}'.format(library_path))
             return headers
 
     # returns None on failure
@@ -86,8 +86,8 @@ class Analyzer:
         try:
             z = ZipFile(ar)
         except BadZipFile as ex:
-            logging.warning('Invalid Zip archive: {}'.format(ar))
-            logging.warning('Description: {}'.format(str(ex.args[0])))
+            logging.error('Invalid Zip archive: {}'.format(ar))
+            logging.error('Description: {}'.format(str(ex.args[0])))
             return None
         with z:
             filenames = z.namelist()
@@ -97,7 +97,7 @@ class Analyzer:
                 if re.fullmatch(r'^[^/]+/examples/.+/[^/]+[.](ino|pde)$', f):
                     sketches.append(f)
             if len(sketches) == 0:
-                logging.warning('No example found for the library with path: {}'.format(library_path))
+                logging.info('No example found for the library with path: {}'.format(library_path))
             for s in sketches:
                 with z.open(s) as f:
                     data = f.read()
@@ -114,7 +114,7 @@ class Analyzer:
                     try:
                         sketch_source = data.decode(encoding)
                     except UnicodeError as ex:
-                        logging.warning('Could not decode the example sketch with path: {}'.format(s))
+                        logging.error('Could not decode the example sketch with path: {}'.format(s))
                         return None
                     headers = util.get_included_headers_from_source_code(sketch_source)
                     # To get the example sketch name with separating directories, first we remove the extension from the
