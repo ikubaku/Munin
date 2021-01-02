@@ -21,10 +21,11 @@ def start_logging(log_path, verbosity, no_warning):
     # Temporarily increase log level to show mandatory messages
     logging.getLogger().setLevel(logging.INFO)
     logging.info('--- Start of the Munin log from date (UTC): {} ---'.format(datetime.datetime.utcnow()))
-    if no_warning:
-        logging.getLogger().setLevel(logging.ERROR)
-    if verbosity == 0 and not no_warning:
-        logging.getLogger().setLevel(logging.WARNING)
+    if verbosity == 0:
+        if no_warning:
+            logging.getLogger().setLevel(logging.ERROR)
+        else:
+            logging.getLogger().setLevel(logging.WARNING)
     elif verbosity == 1:
         logging.getLogger().setLevel(logging.INFO)
     else:
