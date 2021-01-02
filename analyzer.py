@@ -113,7 +113,8 @@ class Analyzer:
                         encoding = 'utf-8'
                     try:
                         sketch_source = data.decode(encoding)
-                    except UnicodeError:
+                    except UnicodeError as ex:
+                        logging.warning('Could not decode the example sketch with path: {}'.format(s))
                         return None
                     headers = util.get_included_headers_from_source_code(sketch_source)
                     example_name = '.'.join(Path(s).name.split('.')[:-1])
