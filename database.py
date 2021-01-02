@@ -115,6 +115,8 @@ class Database:
 
     def search(self, header_name):
         res = []
+        if header_name not in self.header_dict:
+            return res
         libs = self.header_dict[header_name]
         for lib in libs:
             values = lib.split('\n')
