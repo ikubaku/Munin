@@ -18,6 +18,10 @@ import util
 def start_logging(log_path):
     print('Enabled logging to the log file.')
     logging.basicConfig(filename=log_path)
+    # Temporarily increase log level to show mandatory messages
+    logging.getLogger().setLevel(logging.INFO)
+    logging.info('--- Start of the Munin log from date (UTC): {} ---'.format(datetime.datetime.utcnow()))
+    logging.getLogger().setLevel(logging.WARNING)
 
 
 def load_config(conf_path):
