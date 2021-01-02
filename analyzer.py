@@ -48,6 +48,7 @@ class Analyzer:
             print()
             print('{} out of {} analyses failed. Consult the log file for more information.'.format(n_failure, n_libs))
 
+    # returns None on failure
     def get_headers_for_library(self, library_path):
         logging.info('Analyzing the library in path: {}...'.format(library_path))
         ar = list(library_path.glob('*.zip'))[0]
