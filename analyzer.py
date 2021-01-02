@@ -2,15 +2,13 @@ from pathlib import Path
 import logging
 import re
 import shutil
-import configparser
-from configparser import ConfigParser
 from zipfile import ZipFile
 from zipfile import BadZipFile
-from io import TextIOWrapper
 from progress.bar import Bar
 from chardet.universaldetector import UniversalDetector
 
 import util
+
 
 class Analyzer:
     HEADERS_FILENAME = 'headers.toml'
