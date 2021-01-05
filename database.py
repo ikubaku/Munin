@@ -85,12 +85,13 @@ class Database:
         self.header_dict = {}
         self.feature_data = FeatureDatabase()
 
-    def load(self):
-        self.library_index = self.read_library_index()
-        if Path(self.root_path, self.HEADER_DICTIONARY_FILENAME).exists():
-            self.read_header_dictionary()
-        if Path(self.root_path, self.FEATURE_DATABASE_FILENAME).exists():
-            self.read_feature_database()
+    def load(self, force=False):
+        if self.library_index is None or force:
+            self.library_index = self.read_library_index()
+            if Path(self.root_path, self.HEADER_DICTIONARY_FILENAME).exists():
+                self.read_header_dictionary()
+            if Path(self.root_path, self.FEATURE_DATABASE_FILENAME).exists():
+                self.read_feature_database()
 
     def save(self):
         if not self.library_index:
