@@ -8,6 +8,7 @@ import logging
 import datetime
 import requests
 import shutil
+from pathlib import Path
 import config
 import library_index
 import database
@@ -139,6 +140,16 @@ def do_guess_libraries(conf, sketch):
         return do_search_examples(conf, headers)
 
 
+def do_extract(conf, output_path, sketch=None):
+    # Open the database
+    logging.info('Opening the database...')
+    db = database.Database(conf.database_root)
+    db.load()
+    logging.info('Extracting example source codes...')
+    db.extract_example_sketches(output_path)
+    return 0
+
+
 def com_populate(args):
     conf = initialize_command(args)
     sys.exit(do_fetch(conf, populate=True))
@@ -178,6 +189,18 @@ def com_guess(args):
     sys.exit(-1)
 
 
+def com_extract(args):
+    conf = initialize_command(args)
+    if args.output is None:
+        print('The output location is not specified.')
+        sys.exit(-1)
+    if args.sketch is None:
+        sys.exit(do_extract(conf, Path(args.output)))
+    else:
+        print('BUG: Not yet implemented.')
+        sys.exit(-1)
+
+
 def main():
     parser = argparse.ArgumentParser(description='Munin - Code clone database creator')
     parser.add_argument('-c', '--config', help='configuration filename', default='munin.toml', metavar='CONFIG')
@@ -200,6 +223,10 @@ def main():
     guess_parser = command_parsers.add_parser('guess', help='Guess used libraries for the given sketch.')
     guess_parser.add_argument('sketch', help='The sketch filename.', metavar='SKETCH')
     guess_parser.set_defaults(func=com_guess)
+    extract_parser = command_parsers.add_parser('extract', help='Create dataset for code clone detection.')
+    extract_parser.add_argument('output',  help='The output location (directory)', metavar='DEST')
+    extract_parser.add_argument('-s', '--sketch', help='The sketch file to narrow the dataset scale.', metavar='SKETCH')
+    extract_parser.set_defaults(func=com_extract)
     args = parser.parse_args()
 
     if not shutil.rmtree.avoids_symlink_attacks:
