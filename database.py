@@ -189,7 +189,7 @@ class Database:
                     target_source_path = Path(target_version_path, found_example_name)
                     if not target_source_path.exists():
                         logging.debug('The directory for the source code is not present. Creating one...')
-                        target_source_path.mkdir(0o755, exist_ok=True)
+                        target_source_path.mkdir(0o755, parents=True)
                     content = z.read(f)
                     with open(Path(target_source_path, Path(f).name), 'wb') as fo:
                         fo.write(content)
