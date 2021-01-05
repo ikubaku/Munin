@@ -4,6 +4,8 @@ import logging
 from urllib.parse import urlparse
 import datetime
 import copy
+from zipfile import ZipFile, BadZipFile
+import re
 import toml
 import requests
 from progress.bar import Bar
@@ -124,6 +126,72 @@ class Database:
             version = values[1]
             res.append({'name': name, 'version': version})
         return res
+
+    # examples is a list of (library_name, version, example_name) tuples.
+    def extract_example_sketches(self, output_path, examples=None):
+        if examples is None:
+            for info in self.get_library_info_list():
+                self.extract_examples_from_library(output_path, info)
+        else:
+            # Collect required information into a sequence of (LibraryInfo, [example_name]).
+            # TODO: self.search_example_sketches may return data in dictionary so that this process become not
+            #  necessary.
+            temp_dict = {}
+            for e in examples:
+                # 'library_name\nversion'
+                (library_name, version, example_name) = e
+                temp_key = '\n'.join([library_name, version])
+                if temp_key in temp_dict:
+                    temp_dict[temp_key].append(example_name)
+                else:
+                    temp_dict[temp_key] = [example_name]
+            for (k, v) in temp_dict.items():
+                (library_name, version) = k.split('\n')
+                example_names = v
+                path = Path(self.root_path, self.LIBRARY_STORAGE_DIRECTORY, library_name, version)
+                if self.is_downloaded(path):
+                    self.extract_examples_from_library(output_path, LibraryInfo(library_name, version, path),
+                                                       examples=example_names)
+
+    def extract_examples_from_library(self, output_path, info, examples=None):
+        dataset_output_path = Path(output_path)
+        if not dataset_output_path.exists():
+            logging.debug('The library storage directory is not present. Creating one...')
+            dataset_output_path.mkdir(0o755)
+        target_library_path = Path(dataset_output_path, info.name)
+        if not target_library_path.exists():
+            logging.debug('The directory for the library is not present. Creating one...')
+            target_library_path.mkdir(0o755)
+        target_version_path = Path(target_library_path, info.version)
+        if not target_version_path.exists():
+            logging.debug('The directory for the version of the library is not present. Creating one...')
+            target_version_path.mkdir(0o755)
+        try:
+            z = ZipFile(info.path)
+        except BadZipFile as ex:
+            logging.error('Invalid Zip archive: {}'.format(info.path))
+            logging.error('Description: {}'.format(str(ex.args[0])))
+            return
+        with z:
+            # Extract all the example sources
+            filenames = z.namelist()
+            for f in filenames:
+                m = re.fullmatch(r'^[^/]+/examples/((|.+/).+)/[^/]+[.](ino|pde|c|h|cpp|hpp|cxx|hxx|cc)$', f)
+                if m:
+                    logging.debug('Found a source code: {}'.format(f))
+                    found_example_name = m.group(1)
+                    if examples is not None:
+                        # Ignore example sources that is not specified with the argument.
+                        if found_example_name not in examples:
+                            continue
+                    # Below is executed if the found example is one of the specified ones, or none is specified.
+                    target_source_path = Path(target_version_path, found_example_name)
+                    if not target_source_path.exists():
+                        logging.debug('The directory for the source code is not present. Creating one...')
+                        target_source_path.mkdir(0o755, exist_ok=True)
+                    content = z.read(f)
+                    with open(Path(target_source_path, Path(f).name), 'wb') as fo:
+                        fo.write(content)
 
     def search_example_sketches(self, headers):
         return self.feature_data.search_all_for_headers(headers)
