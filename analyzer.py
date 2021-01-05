@@ -107,7 +107,9 @@ class Analyzer:
             # Look for the example sketches
             sketches = []
             for f in filenames:
-                if re.fullmatch(r'^[^/]+/examples/.+/[^/]+[.](ino|pde)$', f):
+                m = re.fullmatch(r'^[^/]+/examples/(|.+/)(.+)/\2.(ino|pde)$', f)
+                if m:
+                    logging.debug('Found a sketch with name: {}'.format(m.group(2)))
                     sketches.append(f)
             if len(sketches) == 0:
                 logging.info('No example found for the library with path: {}'.format(library_path))
@@ -128,11 +130,11 @@ class Analyzer:
                     try:
                         sketch_source = data.decode(encoding)
                         headers = util.get_included_headers_from_source_code(sketch_source)
-                        # To get the example sketch name with separating directories, first we remove the extension from
-                        # the file path;
-                        example_name = '.'.join(Path(s).name.split('.')[:-1])
-                        # and then, omit the predicating library archive name and the examples directory name.
-                        example_name = example_name[example_name.find('/examples/') + len('/examples/'):]
+                        # To get the example sketch name with separating directories, first we preceding library archive
+                        # name and the examples directory name.
+                        example_name = s[s.find('/examples/') + len('/examples/'):]
+                        # and then, omit the actual sketch source code name.
+                        example_name = '/'.join(example_name.split('/')[:-1])
                         res.append((example_name, headers))
                     except UnicodeError as ex:
                         logging.error('Could not decode the example sketch with path: {}'.format(s))
