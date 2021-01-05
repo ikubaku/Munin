@@ -166,10 +166,11 @@ class Database:
         if not target_version_path.exists():
             logging.debug('The directory for the version of the library is not present. Creating one...')
             target_version_path.mkdir(0o755)
+        ar = list(info.path.glob('*.zip'))[0]
         try:
-            z = ZipFile(info.path)
+            z = ZipFile(ar)
         except BadZipFile as ex:
-            logging.error('Invalid Zip archive: {}'.format(info.path))
+            logging.error('Invalid Zip archive: {}'.format(ar))
             logging.error('Description: {}'.format(str(ex.args[0])))
             return
         with z:
