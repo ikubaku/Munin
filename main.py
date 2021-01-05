@@ -146,8 +146,15 @@ def do_extract(conf, output_path, sketch=None):
     db = database.Database(conf.database_root)
     db.load()
     logging.info('Extracting example source codes...')
-    db.extract_example_sketches(output_path)
-    return 0
+    if sketch is None:
+        db.extract_example_sketches(output_path)
+        return 0
+    else:
+        with open(sketch) as f:
+            headers = util.get_included_headers_from_source_code(f.read())
+            examples = db.search_example_sketches(headers)
+            db.extract_example_sketches(output_path, examples=examples)
+            return 0
 
 
 def com_populate(args):
@@ -197,8 +204,7 @@ def com_extract(args):
     if args.sketch is None:
         sys.exit(do_extract(conf, Path(args.output)))
     else:
-        print('BUG: Not yet implemented.')
-        sys.exit(-1)
+        sys.exit(do_extract(conf, Path(args.output), Path(args.sketch)))
 
 
 def main():
