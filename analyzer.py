@@ -107,7 +107,7 @@ class Analyzer:
             # Look for the example sketches
             sketches = []
             for f in filenames:
-                m = re.fullmatch(r'^[^/]+/examples/(|.+/)(.+)/\2.(ino|pde)$', f)
+                m = re.fullmatch(r'^[^/]+/examples/(|.+/)(.+)/\2[.](ino|pde)$', f)
                 if m:
                     logging.debug('Found a sketch with name: {}'.format(m.group(2)))
                     sketches.append(f)
