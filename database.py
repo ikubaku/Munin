@@ -9,6 +9,7 @@ import re
 import toml
 import requests
 from progress.bar import Bar
+import semver
 import library_index
 
 
@@ -79,6 +80,10 @@ class Database:
     HEADER_DICTIONARY_FILENAME = 'headers.toml'
     FEATURE_DATABASE_FILENAME = 'features.toml'
 
+    # Version specifiers for the extraction methods
+    ALL_VERSIONS = 0
+    LATEST_VERSIONS = 1
+
     def __init__(self, directory):
         self.root_path = Path(directory).expanduser()
         self.library_index = None
@@ -129,15 +134,17 @@ class Database:
         return res
 
     # examples is a list of (library_name, version, example_name) tuples.
-    def extract_example_sketches(self, output_path, examples=None):
+    def extract_example_sketches(self, output_path, examples=None, version_flag=ALL_VERSIONS):
+        # Collect required information into a sequence of (LibraryInfo, [example_name]).
         if examples is None:
-            for info in self.get_library_info_list():
-                self.extract_examples_from_library(output_path, info)
+            info_list = self.get_library_info_list()
+            examples_list = None
         else:
-            # Collect required information into a sequence of (LibraryInfo, [example_name]).
             # TODO: self.search_example_sketches may return data in dictionary so that this process become not
             #  necessary.
             temp_dict = {}
+            info_list = []
+            examples_list = []
             for e in examples:
                 # 'library_name\nversion'
                 (library_name, version, example_name) = e
@@ -151,8 +158,40 @@ class Database:
                 example_names = v
                 path = Path(self.root_path, self.LIBRARY_STORAGE_DIRECTORY, library_name, version)
                 if self.is_downloaded(path):
-                    self.extract_examples_from_library(output_path, LibraryInfo(library_name, version, path),
-                                                       examples=example_names)
+                    info_list.append(LibraryInfo(library_name, version, path))
+                    examples_list.append(example_names)
+
+        # If the version_flag is set, remove unnecessary versions.
+        max_version = {}
+        variant_bucket = {}
+        if version_flag != Database.ALL_VERSIONS:
+            for i in range(len(info_list)):
+                info = info_list[i]
+                if examples_list is not None:
+                    ex = examples_list[i]
+                else:
+                    ex = None
+
+                if info.name in variant_bucket:
+                    if version_flag == Database.LATEST_VERSIONS:
+                        cmp_res = semver.compare(max_version[info.name], info.version) < 0
+                    else:
+                        raise ValueError('BUG: Invalid version flag.')
+                    if cmp_res:
+                        max_version[info.name] = info.version
+                        variant_bucket[info.name] = [(info, ex)]
+                else:
+                    max_version[info.name] = info.version
+                    variant_bucket[info.name] = [(info, ex)]
+        extract_targets = []
+        for v in variant_bucket.values():
+            extract_targets.extend(v)
+
+        for (info, ex) in extract_targets:
+            if ex is None:
+                self.extract_examples_from_library(output_path, info)
+            else:
+                self.extract_examples_from_library(output_path, info, examples=ex)
 
     def extract_examples_from_library(self, output_path, info, examples=None):
         dataset_output_path = Path(output_path)

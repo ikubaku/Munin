@@ -140,20 +140,26 @@ def do_guess_libraries(conf, sketch):
         return do_search_examples(conf, headers)
 
 
-def do_extract(conf, output_path, sketch=None):
+def do_extract(conf, output_path, extract_latest, sketch=None):
     # Open the database
     logging.info('Opening the database...')
     db = database.Database(conf.database_root)
     db.load()
     logging.info('Extracting example source codes...')
     if sketch is None:
-        db.extract_example_sketches(output_path)
+        if extract_latest:
+            db.extract_example_sketches(output_path, version_flag=database.Database.LATEST_VERSIONS)
+        else:
+            db.extract_example_sketches(output_path)
         return 0
     else:
         with open(sketch) as f:
             headers = util.get_included_headers_from_source_code(f.read())
             examples = db.search_example_sketches(headers)
-            db.extract_example_sketches(output_path, examples=examples)
+            if extract_latest:
+                db.extract_example_sketches(output_path, examples=examples, version_flag=database.Database.LATEST_VERSIONS)
+            else:
+                db.extract_example_sketches(output_path, examples=examples)
             return 0
 
 
@@ -202,9 +208,9 @@ def com_extract(args):
         print('The output location is not specified.')
         sys.exit(-1)
     if args.sketch is None:
-        sys.exit(do_extract(conf, Path(args.output)))
+        sys.exit(do_extract(conf, Path(args.output), args.latest))
     else:
-        sys.exit(do_extract(conf, Path(args.output), Path(args.sketch)))
+        sys.exit(do_extract(conf, Path(args.output), args.latest, Path(args.sketch)))
 
 
 def main():
@@ -232,6 +238,7 @@ def main():
     extract_parser = command_parsers.add_parser('extract', help='Create dataset for code clone detection.')
     extract_parser.add_argument('output',  help='The output location (directory)', metavar='DEST')
     extract_parser.add_argument('-s', '--sketch', help='The sketch file to narrow the dataset scale.', metavar='SKETCH')
+    extract_parser.add_argument('-L', '--latest', help='Extract latest libraries.', action='store_true')
     extract_parser.set_defaults(func=com_extract)
     args = parser.parse_args()
 
