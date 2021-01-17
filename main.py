@@ -215,36 +215,62 @@ def com_extract(args):
 
 def main():
     parser = argparse.ArgumentParser(description='Munin - Code clone database creator')
-    parser.add_argument('-c', '--config', help='configuration filename', default='munin.toml', metavar='CONFIG')
-    parser.add_argument('-l', '--log', help='log file filename', metavar='LOG')
-    parser.add_argument('-v', '--verbose', help='verbosity of the logging (max stack: 2)', action='count', default=0)
-    parser.add_argument('-q', '--nowarn', help='suppress warning message (note that verbosity option overrides this)', action='store_true')
+    parser.add_argument('-c', '--config', help='configuration filename',
+                        default='munin.toml', metavar='CONFIG')
+    parser.add_argument('-l', '--log', help='log file filename',
+                        metavar='LOG')
+    parser.add_argument('-v', '--verbose', help='verbosity of the logging (max stack: 2)',
+                        action='count', default=0)
+    parser.add_argument('-q', '--nowarn', help='suppress warning message (note that verbosity option overrides this)',
+                        action='store_true')
+
     command_parsers = parser.add_subparsers(help='Specify a subcommand', metavar='COMMAND')
-    populate_parser = command_parsers.add_parser('populate', help='Create a database from the start. (overwrites any existing data)')
+
+    populate_parser = command_parsers.add_parser(
+        'populate', help='Create a database from the start. (overwrites any existing data)')
     populate_parser.set_defaults(func=com_populate)
-    fetch_parser = command_parsers.add_parser('fetch', help='Look for the header candidates from the downloaded Arduino libraries.')
+
+    fetch_parser = command_parsers.add_parser(
+        'fetch', help='Look for the header candidates from the downloaded Arduino libraries.')
     fetch_parser.set_defaults(func=com_fetch)
-    find_headers_parser = command_parsers.add_parser('find_headers', help='Upload the library index in the existing database.')
+
+    find_headers_parser = command_parsers.add_parser(
+        'find_headers', help='Upload the library index in the existing database.')
     find_headers_parser.set_defaults(func=com_find_headers)
-    search_parser = command_parsers.add_parser('search', help='Find possibly corresponding libraries with a header file name.')
-    search_parser.add_argument('header', help='Header file name for the searching.', metavar='HEADER')
+
+    search_parser = command_parsers.add_parser(
+        'search', help='Find possibly corresponding libraries with a header file name.')
+    search_parser.add_argument('header', help='Header file name for the searching.',
+                               metavar='HEADER')
     search_parser.set_defaults(func=com_search)
-    search_example_parser = command_parsers.add_parser('examples', help='Look for example sketches with header file names.')
-    search_example_parser.add_argument('headers', help='List of header file names for the searching.', nargs='*', metavar='HEADERS')
+
+    search_example_parser = command_parsers.add_parser(
+        'examples', help='Look for example sketches with header file names.')
+    search_example_parser.add_argument('headers', help='List of header file names for the searching.',
+                                       nargs='*', metavar='HEADERS')
     search_example_parser.set_defaults(func=com_examples)
-    guess_parser = command_parsers.add_parser('guess', help='Guess used libraries for the given sketch.')
-    guess_parser.add_argument('sketch', help='The sketch filename.', metavar='SKETCH')
+
+    guess_parser = command_parsers.add_parser(
+        'guess', help='Guess used libraries for the given sketch.')
+    guess_parser.add_argument('sketch', help='The sketch filename.',
+                              metavar='SKETCH')
     guess_parser.set_defaults(func=com_guess)
-    extract_parser = command_parsers.add_parser('extract', help='Create dataset for code clone detection.')
-    extract_parser.add_argument('output',  help='The output location (directory)', metavar='DEST')
-    extract_parser.add_argument('-s', '--sketch', help='The sketch file to narrow the dataset scale.', metavar='SKETCH')
-    extract_parser.add_argument('-L', '--latest', help='Extract latest libraries.', action='store_true')
+
+    extract_parser = command_parsers.add_parser(
+        'extract', help='Create dataset for code clone detection.')
+    extract_parser.add_argument('output',  help='The output location (directory)',
+                                metavar='DEST')
+    extract_parser.add_argument('-s', '--sketch', help='The sketch file to narrow the dataset scale.',
+                                metavar='SKETCH')
+    extract_parser.add_argument('-L', '--latest', help='Extract latest libraries.',
+                                action='store_true')
     extract_parser.set_defaults(func=com_extract)
+
     args = parser.parse_args()
 
     if not shutil.rmtree.avoids_symlink_attacks:
         print('''Your system does not support the symlink attack mitigations for the shutil.rmtree function.
-        Using this program is potentially dangerous because the attack can be used to remove arbitrary files in your 
+        Using this program is potentially dangerous because the attack can be used to remove arbitrary files in your
         system. See Note in the Python documentation for more information:
         https://docs.python.org/3/library/shutil.html?highlight=shutil#shutil.rmtree''')
 

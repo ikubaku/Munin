@@ -46,7 +46,10 @@ class Analyzer:
                     feature_headers = set(headers) & set(example_headers)
                     self.database.add_feature_database_entry(lib_info, example_name, feature_headers)
                 if len(headers) == 0 and len(example_headers) != 0:
-                    logging.warning('Found examples but the library has no header in its source directory.: {}-{}'.format(lib_info.name, lib_info.version))
+                    logging.warning(
+                        'Found examples but the library has no header in its source directory.: {}-{}'
+                        .format(lib_info.name, lib_info.version)
+                    )
             bar.next()
         bar.finish()
         print()
@@ -136,7 +139,7 @@ class Analyzer:
                         # and then, omit the actual sketch source code name.
                         example_name = '/'.join(example_name.split('/')[:-1])
                         res.append((example_name, headers))
-                    except UnicodeError as ex:
+                    except UnicodeError:
                         logging.error('Could not decode the example sketch with path: {}'.format(s))
                         self.n_failed_example_sketches += 1
                         is_failed = True
