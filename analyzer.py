@@ -93,6 +93,36 @@ class Analyzer:
                 logging.info('No header file found for the library with path: {}'.format(library_path))
             return headers
 
+    def get_example_sketches(self, filenames):
+        # Look for the example sketches
+        sketches = []
+        for f in filenames:
+            m = re.fullmatch(r'^[^/]+/examples/(|.+/)(.+)/\2[.](ino|pde)$', f)
+            if m:
+                logging.debug('Found a sketch with name: {}'.format(m.group(2)))
+                sketches.append(f)
+        return sketches
+
+    def stringify_file_in_archive(self, zipfile, filename):
+        with zipfile.open(filename) as f:
+            data = f.read()
+        guesser = UniversalDetector()
+        guesser.feed(data)
+        guess = guesser.close()
+        if guesser.done:
+            encoding = guess['encoding']
+            if encoding is None:
+                # try UTF-8 if we are not sure about the encoding
+                encoding = 'utf-8'
+        else:
+            encoding = 'utf-8'
+        try:
+            res = data.decode(encoding)
+        except UnicodeError:
+            logging.error('Could not decode the example sketch with path: {}'.format(filename))
+            res = None
+        return res
+
     # returns (is_ok, res)
     def get_headers_in_examples(self, library_path):
         res = []
@@ -107,42 +137,23 @@ class Analyzer:
             return False, []
         with z:
             filenames = z.namelist()
-            # Look for the example sketches
-            sketches = []
-            for f in filenames:
-                m = re.fullmatch(r'^[^/]+/examples/(|.+/)(.+)/\2[.](ino|pde)$', f)
-                if m:
-                    logging.debug('Found a sketch with name: {}'.format(m.group(2)))
-                    sketches.append(f)
+            sketches = self.get_example_sketches(filenames)
             if len(sketches) == 0:
                 logging.info('No example found for the library with path: {}'.format(library_path))
             self.n_example_sketches += len(sketches)
             for s in sketches:
-                with z.open(s) as f:
-                    data = f.read()
-                    guesser = UniversalDetector()
-                    guesser.feed(data)
-                    guess = guesser.close()
-                    if guesser.done:
-                        encoding = guess['encoding']
-                        if encoding is None:
-                            # try UTF-8 if we are not sure about the encoding
-                            encoding = 'utf-8'
-                    else:
-                        encoding = 'utf-8'
-                    try:
-                        sketch_source = data.decode(encoding)
-                        headers = util.get_included_headers_from_source_code(sketch_source)
-                        # To get the example sketch name with separating directories, first we preceding library archive
-                        # name and the examples directory name.
-                        example_name = s[s.find('/examples/') + len('/examples/'):]
-                        # and then, omit the actual sketch source code name.
-                        example_name = '/'.join(example_name.split('/')[:-1])
-                        res.append((example_name, headers))
-                    except UnicodeError:
-                        logging.error('Could not decode the example sketch with path: {}'.format(s))
-                        self.n_failed_example_sketches += 1
-                        is_failed = True
+                res_source = self.stringify_file_in_archive(z, s)
+                if res_source is None:
+                    self.n_failed_example_sketches += 1
+                    is_failed = True
+                else:
+                    headers = util.get_included_headers_from_source_code(res_source)
+                    # To get the example sketch name with separating directories, first we preceding library archive
+                    # name and the examples directory name.
+                    example_name = s[s.find('/examples/') + len('/examples/'):]
+                    # and then, omit the actual sketch source code name.
+                    example_name = '/'.join(example_name.split('/')[:-1])
+                    res.append((example_name, headers))
         return not is_failed, res
 
     # NOTE: Currently the temporary directory is unused
