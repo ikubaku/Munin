@@ -243,7 +243,7 @@ def main():
     args = parser.parse_args()
 
     if not shutil.rmtree.avoids_symlink_attacks:
-        logging.warning('''Your system does not support the symlink attack mitigations for the shutil.rmtree function.
+        print('''Your system does not support the symlink attack mitigations for the shutil.rmtree function.
         Using this program is potentially dangerous because the attack can be used to remove arbitrary files in your 
         system. See Note in the Python documentation for more information:
         https://docs.python.org/3/library/shutil.html?highlight=shutil#shutil.rmtree''')
