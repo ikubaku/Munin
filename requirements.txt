@@ -2,3 +2,4 @@ toml
 requests
 progress
 chardet
+semver
