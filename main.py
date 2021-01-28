@@ -172,14 +172,14 @@ def do_gen_session(conf, project_path, output_path, narrow, extract_latest):
     logging.info('Generating the Hugin session...')
     hugin_session = job.HuginSession(output_path)
     hugin_session.set_project_root(project_path)
+    sketches = list(project_path.expanduser().glob("*.ino"))
+    if len(sketches) == 0:
+        sketches = list(project_path.expanduser().glob("*.pde"))
+    if len(sketches) == 0:
+        logging.error('No sketch found in the specified project.')
+        return -1
     res = None
     if narrow:
-        sketches = list(project_path.expanduser().glob("*.ino"))
-        if len(sketches) == 0:
-            sketches = list(project_path.expanduser().glob("*.pde"))
-        if len(sketches) == 0:
-            logging.error('No sketch found in the specified project.')
-            return -1
         if len(sketches) > 1:
             logging.warning('Multiple sketches found in the specified directory. This is unexpected and the program '
                             'will use the first sketch file found for the narrowing.')
