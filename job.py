@@ -98,6 +98,7 @@ class HuginSession:
     def set_project_root(self, project_root):
         """Set the project root path"""
         self.project_root = Path(project_root).expanduser()
+        self.session = Session(str(self.project_root.name), jobs_path=HuginSession.HUGIN_JOBS_PATH)
 
     def create_new_job(
             self,
@@ -109,8 +110,12 @@ class HuginSession:
             archive_root
     ):
         """Create and add a new job to the session"""
-        job_library_info = JobLibraryInfo(library_name, library_version, archive_path, archive_root)
-        job = Job(project_source_path, example_source_path, job_library_info)
+        job_library_info = JobLibraryInfo(library_name, library_version, str(archive_path), str(archive_root))
+        job = Job(
+            SourceInfo(str(project_source_path.name)),
+            SourceInfo(str(example_source_path)),
+            job_library_info
+        )
         self.jobs.append(job)
 
     def write(self):
@@ -121,13 +126,13 @@ class HuginSession:
             raise ValueError("Tried to generate the session without any valid data.")
 
         self.secure_directories()
-        with open(self.output_path.joinpath(HuginSession.SESSION_FILE_NAME, 'w')) as f:
+        with open(self.output_path.joinpath(HuginSession.SESSION_FILE_NAME), 'w') as f:
             toml_string = toml.dumps(self.session.serialize())
             f.write(toml_string)
-        shutil.copytree(self.project_root, self.output_path)
+        shutil.copytree(self.project_root, self.output_path.joinpath(self.project_root.name))
         for (i, j) in enumerate(self.jobs):
             file_name = HuginSession.JOB_FILE_PREFIX + str(i) + '.toml'
-            with open(file_name, 'w') as f:
+            with open(self.output_path.joinpath(HuginSession.HUGIN_JOBS_PATH).joinpath(file_name), 'w') as f:
                 toml_string = toml.dumps(j.serialize())
                 f.write(toml_string)
 

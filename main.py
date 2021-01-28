@@ -14,6 +14,7 @@ import library_index
 import database
 import analyzer
 import util
+import job
 
 
 def start_logging(log_path, verbosity, no_warning):
@@ -163,6 +164,54 @@ def do_extract(conf, output_path, extract_latest, sketch=None):
             return 0
 
 
+def do_gen_session(conf, project_path, output_path, narrow, extract_latest):
+    # Open the database
+    logging.info('Opening the database...')
+    db = database.Database(conf.database_root)
+    db.load()
+    logging.info('Generating the Hugin session...')
+    hugin_session = job.HuginSession(output_path)
+    hugin_session.set_project_root(project_path)
+    res = None
+    if narrow:
+        sketches = list(project_path.expanduser().glob("*.ino"))
+        if len(sketches) == 0:
+            sketches = list(project_path.expanduser().glob("*.pde"))
+        if len(sketches) == 0:
+            logging.error('No sketch found in the specified project.')
+            return -1
+        if len(sketches) > 1:
+            logging.warning('Multiple sketches found in the specified directory. This is unexpected and the program '
+                            'will use the first sketch file found for the narrowing.')
+        with open(sketches[0]) as f:
+            headers = util.get_included_headers_from_source_code(f.read())
+            examples = db.search_example_sketches(headers)
+            if extract_latest:
+                # get example sketches from the latest versions
+                res = db.get_example_sketches_to_extract(
+                    examples=examples,
+                    version_flag=database.Database.LATEST_VERSIONS)
+            else:
+                # get all the example sketches
+                res = db.get_example_sketches_to_extract(examples=examples)
+    else:
+        if extract_latest:
+            res = db.get_example_sketches_to_extract(version_flag=database.Database.LATEST_VERSIONS)
+        else:
+            res = db.get_example_sketches_to_extract()
+
+    if res is None:
+        return -1
+
+    for (example_sources, library_name, library_version, archive_path, archive_root) in res:
+        for s in example_sources:
+            hugin_session.create_new_job(sketches[0], s, library_name, library_version, archive_path, archive_root)
+
+    logging.info('Writing the session...')
+    hugin_session.write()
+    return 0
+
+
 def com_populate(args):
     conf = initialize_command(args)
     sys.exit(do_fetch(conf, populate=True))
@@ -211,6 +260,18 @@ def com_extract(args):
         sys.exit(do_extract(conf, Path(args.output), args.latest))
     else:
         sys.exit(do_extract(conf, Path(args.output), args.latest, Path(args.sketch)))
+
+
+def com_gen_session(args):
+    conf = initialize_command(args)
+    if args.project is None:
+        print('The project is not specified.')
+        sys.exit(-1)
+    if args.output is None:
+        print('The output location is not specified.')
+        sys.exit(-1)
+    else:
+        sys.exit(do_gen_session(conf, Path(args.project), Path(args.output), args.narrow, args.latest))
 
 
 def main():
@@ -265,6 +326,16 @@ def main():
     extract_parser.add_argument('-L', '--latest', help='Extract latest libraries.',
                                 action='store_true')
     extract_parser.set_defaults(func=com_extract)
+    gen_session_parser = command_parsers.add_parser(
+        'gen_session', help='Generate a Hugin session for the clone detection.'
+    )
+    gen_session_parser.add_argument('project', help='The arduino project to do analysis on.', metavar='PROJECT')
+    gen_session_parser.add_argument('output', help='The output location.', metavar='OUTPUT')
+    gen_session_parser.add_argument('-n', '--narrow', help='Narrow library examples using the sketch source.',
+                                    action='store_true')
+    gen_session_parser.add_argument('-L', '--latest', help='Only extract latest libraries.',
+                                    action='store_true')
+    gen_session_parser.set_defaults(func=com_gen_session)
 
     args = parser.parse_args()
 
@@ -273,6 +344,8 @@ def main():
         Using this program is potentially dangerous because the attack can be used to remove arbitrary files in your
         system. See Note in the Python documentation for more information:
         https://docs.python.org/3/library/shutil.html?highlight=shutil#shutil.rmtree''')
+
+    args.func(args)
 
     try:
         args.func(args)

@@ -4,6 +4,7 @@ import logging
 from urllib.parse import urlparse
 import datetime
 import copy
+import zipfile
 from zipfile import ZipFile, BadZipFile
 import re
 import toml
@@ -190,6 +191,62 @@ class Database:
         for v in variant_bucket.values():
             extract_targets.extend(v)
         return extract_targets
+
+    # Returns the list of ([example_source_path,...], library_name, library_version, archive_path, archive_root)
+    # or None on failure
+    def get_example_sketches_to_extract(self, examples=None, version_flag=ALL_VERSIONS):
+        res = []
+        targets = self.compute_extract_targets(examples, version_flag)
+        for ex in targets:
+            name = ex[0].name
+            version = ex[0].version
+            library_storage_location = ex[0].path
+            examples = ex[1]
+            ar = list(library_storage_location.glob('*.zip'))[0]
+            try:
+                z = ZipFile(ar)
+            except BadZipFile as ex:
+                logging.error('Invalid Zip archive: {}'.format(ar))
+                logging.error('Description: {}'.format(str(ex.args[0])))
+                return
+            with z:
+                # Locate the root directory of the library (NOT the root directory of the ZIP archive!)
+                # Note that the name of the root directory in Python zipfile module is a empty string.
+                archive_root = None
+                for p in z.namelist():
+                    item_path = zipfile.Path(z, p)
+                    if item_path.name != '' \
+                            and item_path.is_dir() \
+                            and item_path.parent.name == '':
+                        if archive_root is not None:
+                            logging.warning(
+                                'Multiple directories found in the root directory. Ignoring those found later.')
+                        else:
+                            archive_root = item_path.name
+                if archive_root is None:
+                    logging.error('No directories found on the root directory.')
+                    return None
+                # Extract all the example sources
+                filenames = z.namelist()
+                example_sources = []
+                for f in filenames:
+                    m = re.fullmatch(r'^[^/]+/examples/((|.+/).+)/[^/]+[.](ino|pde|c|h|cpp|hpp|cxx|hxx|cc)$', f)
+                    if m:
+                        logging.debug('Found a source code: {}'.format(f))
+                        found_example_name = m.group(1)
+                        if examples is not None:
+                            # Ignore example sources that is not specified with the argument.
+                            if found_example_name not in examples:
+                                continue
+                        # Below is executed if the found example is one of the specified ones, or none is specified.
+                        example_sources.append(str(os.path.relpath(Path(f), start=Path(archive_root, 'examples'))))
+                res.append((
+                    example_sources,
+                    name,
+                    version,
+                    os.path.relpath(ar, start=Path(self.root_path, self.LIBRARY_STORAGE_DIRECTORY)),
+                    archive_root))
+        return res
 
     # examples is a list of (library_name, version, example_name) tuples.
     def extract_example_sketches(self, output_path, examples=None, version_flag=ALL_VERSIONS):
