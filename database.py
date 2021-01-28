@@ -133,8 +133,11 @@ class Database:
             res.append({'name': name, 'version': version})
         return res
 
+    # Generate the list of sources to extract from the list of examples and the version restriction.
     # examples is a list of (library_name, version, example_name) tuples.
-    def extract_example_sketches(self, output_path, examples=None, version_flag=ALL_VERSIONS):
+    # Returns the list of (LibraryInfo, example_name)
+    # where example_name is the example sketch of the library for LibraryInfo.
+    def compute_extract_targets(self, examples=None, version_flag=ALL_VERSIONS):
         # Collect required information into a sequence of (LibraryInfo, [example_name]).
         if examples is None:
             info_list = self.get_library_info_list()
@@ -186,6 +189,11 @@ class Database:
         extract_targets = []
         for v in variant_bucket.values():
             extract_targets.extend(v)
+        return extract_targets
+
+    # examples is a list of (library_name, version, example_name) tuples.
+    def extract_example_sketches(self, output_path, examples=None, version_flag=ALL_VERSIONS):
+        extract_targets = self.compute_extract_targets(examples, version_flag)
 
         for (info, ex) in extract_targets:
             if ex is None:
