@@ -9,12 +9,14 @@ import datetime
 import requests
 import shutil
 from pathlib import Path
+import toml
 import config
 import library_index
 import database
 import analyzer
 import util
 import job
+import result
 
 
 def start_logging(log_path, verbosity, no_warning):
@@ -212,6 +214,19 @@ def do_gen_session(conf, project_path, output_path, narrow, extract_latest):
     return 0
 
 
+def do_conv_result(conf, result_path, project_path, output_path):
+    logging.info('Loading the result file...')
+    result_path = result_path.expanduser()
+    with open(result_path) as f:
+        toml_string = f.read()
+    res_ser = toml.loads(toml_string)
+    conv = result.ResultConverter(conf.database_root, project_path)
+    conv.load_results_from_serialized(res_ser)
+    logging.info('Coverting...')
+    conv.generate_readable_results(output_path)
+    return 0
+
+
 def com_populate(args):
     conf = initialize_command(args)
     sys.exit(do_fetch(conf, populate=True))
@@ -272,6 +287,21 @@ def com_gen_session(args):
         sys.exit(-1)
     else:
         sys.exit(do_gen_session(conf, Path(args.project), Path(args.output), args.narrow, args.latest))
+
+
+def com_conv_result(args):
+    conf = initialize_command(args)
+    if args.result is None:
+        print('No result file provided.')
+        sys.exit(-1)
+    if args.project is None:
+        print('The project is not specified.')
+        sys.exit(-1)
+    if args.output is None:
+        print('The output location is not specified.')
+        sys.exit(-1)
+    else:
+        sys.exit(do_conv_result(conf, Path(args.result), Path(args.project), Path(args.output)))
 
 
 def main():
@@ -336,6 +366,13 @@ def main():
     gen_session_parser.add_argument('-L', '--latest', help='Only extract latest libraries.',
                                     action='store_true')
     gen_session_parser.set_defaults(func=com_gen_session)
+    convert_result_parser = command_parsers.add_parser(
+        'conv_result', help='Convert a Hugin analysis result to more convenient directory structure.'
+    )
+    convert_result_parser.add_argument('result', help='The result file to convert.', metavar='RESULT')
+    convert_result_parser.add_argument('project', help='The arduino project for the result file.', metavar='PROJECT')
+    convert_result_parser.add_argument('output', help='The output directory name.', metavar='OUTPUT')
+    convert_result_parser.set_defaults(func=com_conv_result)
 
     args = parser.parse_args()
 
