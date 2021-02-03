@@ -166,7 +166,7 @@ def do_extract(conf, output_path, extract_latest, sketch=None):
             return 0
 
 
-def do_gen_session(conf, project_path, output_path, narrow, extract_latest):
+def do_gen_session(conf, project_path, output_path, narrow, extract_latest, sketch_only):
     # Open the database
     logging.info('Opening the database...')
     db = database.Database(conf.database_root)
@@ -205,9 +205,19 @@ def do_gen_session(conf, project_path, output_path, narrow, extract_latest):
     if res is None:
         return -1
 
+    if sketch_only:
+        project_files = [sketches[0]]
+    else:
+        project_ls = project_path.expanduser().iterdir()
+        project_files = []
+        for p in project_ls:
+            if not p.is_file():
+                continue
+            project_files.append(p)
     for (example_sources, library_name, library_version, archive_path, archive_root) in res:
         for s in example_sources:
-            hugin_session.create_new_job(sketches[0], s, library_name, library_version, archive_path, archive_root)
+            for p in project_files:
+                hugin_session.create_new_job(p, s, library_name, library_version, archive_path, archive_root)
 
     logging.info('Writing the session...')
     hugin_session.write()
@@ -286,7 +296,7 @@ def com_gen_session(args):
         print('The output location is not specified.')
         sys.exit(-1)
     else:
-        sys.exit(do_gen_session(conf, Path(args.project), Path(args.output), args.narrow, args.latest))
+        sys.exit(do_gen_session(conf, Path(args.project), Path(args.output), args.narrow, args.latest, args.sketchonly))
 
 
 def com_conv_result(args):
@@ -364,6 +374,8 @@ def main():
     gen_session_parser.add_argument('-n', '--narrow', help='Narrow library examples using the sketch source.',
                                     action='store_true')
     gen_session_parser.add_argument('-L', '--latest', help='Only extract latest libraries.',
+                                    action='store_true')
+    gen_session_parser.add_argument('-S', '--sketchonly', help='Only use the sketch file as the project source.',
                                     action='store_true')
     gen_session_parser.set_defaults(func=com_gen_session)
     convert_result_parser = command_parsers.add_parser(
