@@ -242,6 +242,7 @@ def do_restore_database(conf):
     logging.info('Opening the database...')
     db = database.Database(conf.database_root)
     db.load()
+    db.restore()
 
     return 0
 
