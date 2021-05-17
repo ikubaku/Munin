@@ -237,6 +237,15 @@ def do_conv_result(conf, result_path, project_path, output_path):
     return 0
 
 
+def do_restore_database(conf):
+    # Open the database
+    logging.info('Opening the database...')
+    db = database.Database(conf.database_root)
+    db.load()
+
+    return 0
+
+
 def com_populate(args):
     conf = initialize_command(args)
     sys.exit(do_fetch(conf, populate=True))
@@ -314,6 +323,11 @@ def com_conv_result(args):
         sys.exit(do_conv_result(conf, Path(args.result), Path(args.project), Path(args.output)))
 
 
+def com_restore_database(args):
+    conf = initialize_command(args)
+    sys.exit(do_restore_database(conf))
+
+
 def main():
     parser = argparse.ArgumentParser(description='Munin - Code clone database creator')
     parser.add_argument('-c', '--config', help='configuration filename',
@@ -385,6 +399,10 @@ def main():
     convert_result_parser.add_argument('project', help='The arduino project for the result file.', metavar='PROJECT')
     convert_result_parser.add_argument('output', help='The output directory name.', metavar='OUTPUT')
     convert_result_parser.set_defaults(func=com_conv_result)
+    restore_database_parser = command_parsers.add_parser(
+        'restore', help='Restore the stripped database.'
+    )
+    restore_database_parser.set_defaults(func=com_restore_database)
 
     args = parser.parse_args()
 

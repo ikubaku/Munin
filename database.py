@@ -122,6 +122,21 @@ class Database:
             bar.next()
         bar.finish()
 
+    def restore(self):
+        if not self.library_index:
+            raise ValueError('No library index. Cannot download packages.')
+
+        n_libs = len(self.library_index.libs)
+        print('Downloading {} library archives...'.format(n_libs))
+        bar = Bar('PROGRESS', max=n_libs)
+        for lib in self.library_index.libs:
+            name = lib['name']
+            version = lib['version']
+            url = lib['url']
+            self.restore_library(name, version, url)
+            bar.next()
+        bar.finish()
+
     def search(self, header_name):
         res = []
         if header_name not in self.header_dict:
@@ -428,6 +443,25 @@ class Database:
         # Replace the content with the new archives
         for ar in archives:
             ar.unlink()
+        archive_filename = urlparse(url).path.split('/')[-1]
+        r = requests.get(url)
+        dt = datetime.datetime.now(datetime.timezone.utc)
+        if r.status_code != 200:
+            logging.error('Unexpected HTTP status code: {}'.format(r.status_code))
+            self.write_library_metadata(target_version_path, dt, False)
+            logging.error('Could not download a library at: {}'.format(url))
+        else:
+            with open(Path(target_version_path, archive_filename), 'wb') as f:
+                f.write(r.content)
+                self.write_library_metadata(target_version_path, dt, True)
+
+    # Restore missing library archives and update the library metadata.
+    def restore_library(self, name, version, url):
+        lib_storage_path = Path(self.root_path, self.LIBRARY_STORAGE_DIRECTORY)
+        target_library_path = Path(lib_storage_path, name)
+        target_version_path = Path(target_library_path, version)
+        if self.is_downloaded(target_version_path):
+            logging.info('The library archive in path: {} appears to be downloaded in the original Munin database. Restoring...')
         archive_filename = urlparse(url).path.split('/')[-1]
         r = requests.get(url)
         dt = datetime.datetime.now(datetime.timezone.utc)
